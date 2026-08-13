@@ -15,16 +15,26 @@ class Base(DeclarativeBase):
 @lru_cache
 def get_engine() -> Engine:
     settings = get_settings()
-    return create_engine(settings.database_url, future=True, pool_pre_ping=True)
+    return create_engine(
+        settings.database_url,
+        future=True,
+        pool_pre_ping=True,
+        pool_recycle=1800,
+    )
 
 
-def get_db() -> Generator[Session, None, None]:
-    db = sessionmaker(
+@lru_cache
+def get_session_factory() -> sessionmaker[Session]:
+    return sessionmaker(
         get_engine(),
         autoflush=False,
         expire_on_commit=False,
         class_=Session,
-    )()
+    )
+
+
+def get_db() -> Generator[Session, None, None]:
+    db = get_session_factory()()
     try:
         yield db
     finally:
