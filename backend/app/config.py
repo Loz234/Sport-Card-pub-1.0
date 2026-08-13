@@ -38,10 +38,11 @@ class Settings(BaseSettings):
     @field_validator("database_url", mode="before")
     @classmethod
     def normalize_database_url(cls, value: str) -> str:
-        if value.startswith("postgres://"):
-            return value.replace("postgres://", "postgresql+psycopg://", 1)
-        if value.startswith("postgresql://"):
-            return value.replace("postgresql://", "postgresql+psycopg://", 1)
+        if "://" not in value:
+            return value
+        scheme, remainder = value.split("://", 1)
+        if scheme in {"postgres", "postgresql"}:
+            return f"postgresql+psycopg://{remainder}"
         return value
 
     @model_validator(mode="after")
