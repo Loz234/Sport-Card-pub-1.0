@@ -1,29 +1,23 @@
-from datetime import UTC, datetime, timedelta
+from app.data.synthetic_dataset import generate_synthetic_dataset
 
 
 def synthetic_sale_rows() -> list[dict[str, object]]:
-    now = datetime.now(UTC)
-    return [
-        {
-            "athlete_name": "Sample Athlete",
-            "brand": "Topps Chrome",
-            "set_name": "Demo Set",
-            "year": 2024,
-            "card_number": "SC-1",
-            "sale_date": now - timedelta(days=14),
-            "sale_price": 125.0,
-            "currency": "USD",
-            "source_name": "synthetic_seed_sales",
-        },
-        {
-            "athlete_name": "Sample Athlete",
-            "brand": "Topps Chrome",
-            "set_name": "Demo Set",
-            "year": 2024,
-            "card_number": "SC-1",
-            "sale_date": now - timedelta(days=7),
-            "sale_price": 142.5,
-            "currency": "USD",
-            "source_name": "synthetic_seed_sales",
-        },
-    ]
+    dataset = generate_synthetic_dataset(historical_sales_count=2, current_listings_count=0)
+    cards_by_id = {card["id"]: card for card in dataset["cards"]}
+    rows: list[dict[str, object]] = []
+    for sale in dataset["historical_sales"]:
+        card = cards_by_id[int(sale["card_id"])]
+        rows.append(
+            {
+                "athlete_name": card["player_name"],
+                "brand": card["manufacturer"],
+                "set_name": card["set_name"],
+                "year": card["year"],
+                "card_number": card["card_number"],
+                "sale_date": sale["date"],
+                "sale_price": sale["sale_price"],
+                "currency": sale["currency"],
+                "source_name": "synthetic_seed_sales",
+            }
+        )
+    return rows
