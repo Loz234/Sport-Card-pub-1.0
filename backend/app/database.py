@@ -18,6 +18,7 @@ def get_engine() -> Engine:
     return create_engine(settings.database_url, future=True, pool_pre_ping=True)
 
 
+@lru_cache
 def get_session_factory() -> sessionmaker[Session]:
     return sessionmaker(
         bind=get_engine(),

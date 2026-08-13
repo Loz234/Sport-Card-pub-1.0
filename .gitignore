@@ -21,6 +21,9 @@ coverage/
 .env
 .env.*
 !.env.example
+**/.env
+**/.env.*
+!**/.env.example
 
 # Editors and OS
 .vscode/
