@@ -1,7 +1,7 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, field_validator
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     ml_model_version: str = Field(default="baseline-v1", alias="ML_MODEL_VERSION")
     llm_provider: str = Field(default="disabled", alias="LLM_PROVIDER")
     llm_model: str = Field(default="", alias="LLM_MODEL")
-    llm_api_key: str = Field(default="", alias="LLM_API_KEY")
+    llm_api_key: SecretStr | None = Field(default=None, alias="LLM_API_KEY")
 
     model_config = SettingsConfigDict(
         env_file=".env",
