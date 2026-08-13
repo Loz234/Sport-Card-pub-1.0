@@ -144,15 +144,14 @@ def generate_synthetic_dataset(
         )
 
     cards_by_id = {card["id"]: card for card in cards}
-    weighted_card_ids = [
-        card["id"]
-        for card in cards
-        for _ in range(int(_sales_weight_for_liquidity(str(card["liquidity_profile"])) * 10))
+    selectable_card_ids = [int(card["id"]) for card in cards]
+    card_selection_weights = [
+        _sales_weight_for_liquidity(str(card["liquidity_profile"])) for card in cards
     ]
 
     historical_sales: list[dict[str, object]] = []
     for sale_id in range(1, historical_sales_count + 1):
-        card_id = int(rng.choice(weighted_card_ids))
+        card_id = int(rng.choices(selectable_card_ids, weights=card_selection_weights, k=1)[0])
         card = cards_by_id[card_id]
         days_back = rng.randint(1, 730)
         sale_date = now - timedelta(days=days_back)
