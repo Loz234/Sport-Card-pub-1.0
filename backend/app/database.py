@@ -18,19 +18,16 @@ def get_engine() -> Engine:
     return create_engine(settings.database_url, future=True, pool_pre_ping=True)
 
 
-@lru_cache
-def get_session_factory() -> sessionmaker[Session]:
-    return sessionmaker(
-        get_engine(),
-        autoflush=False,
-        autocommit=False,
-        expire_on_commit=False,
-        class_=Session,
-    )
+SessionFactory = sessionmaker(
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False,
+    class_=Session,
+)
 
 
 def get_db() -> Generator[Session, None, None]:
-    db = get_session_factory()()
+    db = SessionFactory(bind=get_engine())
     try:
         yield db
     finally:

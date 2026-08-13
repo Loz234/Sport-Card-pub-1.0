@@ -1,4 +1,5 @@
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field, SecretStr, field_validator
@@ -21,7 +22,7 @@ class Settings(BaseSettings):
     llm_api_key: SecretStr | None = Field(default=None, alias="LLM_API_KEY")
 
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=Path(__file__).resolve().parents[1] / ".env",
         env_file_encoding="utf-8",
         case_sensitive=False,
         extra="ignore",
