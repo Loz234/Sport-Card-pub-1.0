@@ -88,6 +88,9 @@ class CardNormalizer:
         "wemby": "victor wembanyama",
         "victor wembanyama": "victor wembanyama",
     }
+    PLAYER_SPORT_LOOKUP: dict[str, str] = {
+        "victor wembanyama": "basketball",
+    }
     MANUFACTURER_ALIASES: dict[str, str] = {
         "topps": "topps",
         "panini": "panini",
@@ -212,6 +215,9 @@ class CardParser:
         player = self._extract_player(normalized)
         if player:
             score += 0.22
+            if not sport and player in self.normalizer.PLAYER_SPORT_LOOKUP:
+                sport = self.normalizer.PLAYER_SPORT_LOOKUP[player]
+                score += 0.06
 
         year = self._extract_year(normalized)
         if year:
@@ -281,7 +287,7 @@ class CardParser:
             field_value is None
             for field_value in (parsed.player, parsed.year, parsed.manufacturer, parsed.set_name)
         )
-        score -= 0.08 * missing_core
+        score -= 0.06 * missing_core
         confidence = max(0.0, min(1.0, round(score, 4)))
         return ParsedCard(**{**parsed.__dict__, "confidence": confidence})
 
