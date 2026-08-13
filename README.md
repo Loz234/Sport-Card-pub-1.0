@@ -37,7 +37,7 @@ CardSignal AI is a sports card market intelligence platform scaffolded for a Fas
 ### Backend
 
 ```bash
-cd /home/runner/work/Sport-Card-pub-1.0/Sport-Card-pub-1.0/backend
+cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
@@ -47,7 +47,7 @@ uvicorn app.main:app --reload
 ### Frontend
 
 ```bash
-cd /home/runner/work/Sport-Card-pub-1.0/Sport-Card-pub-1.0/frontend
+cd frontend
 npm install
 npm run dev
 ```

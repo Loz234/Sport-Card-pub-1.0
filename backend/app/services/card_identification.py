@@ -11,5 +11,15 @@ class CardIdentifier:
 
     @property
     def slug(self) -> str:
-        base = f"{self.year}-{self.brand}-{self.set_name}-{self.athlete_name}-{self.card_number}"
-        return "-".join(segment.strip().lower().replace(" ", "-") for segment in base.split("-"))
+        parts = [
+            str(self.year),
+            self.brand,
+            self.set_name,
+            self.athlete_name,
+            self.card_number,
+        ]
+        return "-".join(_normalize_part(part) for part in parts)
+
+
+def _normalize_part(value: str) -> str:
+    return value.strip().lower().replace(" ", "-")
