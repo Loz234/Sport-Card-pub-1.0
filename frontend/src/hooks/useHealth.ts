@@ -21,10 +21,7 @@ export function useHealth(): UseHealthState {
         setError(null)
       })
       .catch((reason: unknown) => {
-        if (reason instanceof Error && reason.message.includes('Failed to fetch')) {
-          setError('Unable to reach the backend service.')
-          return
-        }
+        void reason
         setError('Unable to load backend status.')
       })
       .finally(() => {

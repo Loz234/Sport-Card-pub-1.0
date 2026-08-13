@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import re
 
 
 @dataclass(frozen=True)
@@ -22,4 +23,4 @@ class CardIdentifier:
 
 
 def _normalize_part(value: str) -> str:
-    return value.strip().lower().replace(" ", "-")
+    return re.sub(r"[^a-z0-9]+", "-", value.strip().lower()).strip("-")
