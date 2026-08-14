@@ -206,19 +206,19 @@ export function CardDetailPage({ cardId, onBack }: CardDetailPageProps) {
             <h3>Positive signals</h3>
             <ul className="explanation-list">
             {detail.item.explanation.positive_signals.map((reason, index) => (
-              <li key={`positive-${index}`}>{reason}</li>
+              <li key={`${reason}-${index}`}>{reason}</li>
               ))}
             </ul>
             <h3>Risks</h3>
             <ul className="explanation-list">
             {detail.item.explanation.risks.map((reason, index) => (
-              <li key={`risk-${index}`}>{reason}</li>
+              <li key={`${reason}-${index}`}>{reason}</li>
               ))}
             </ul>
             <h3>Why the model may be wrong</h3>
             <ul className="explanation-list">
             {detail.item.explanation.why_model_may_be_wrong.map((reason, index) => (
-              <li key={`wrong-${index}`}>{reason}</li>
+              <li key={`${reason}-${index}`}>{reason}</li>
               ))}
             </ul>
             <h3>Confidence</h3>
