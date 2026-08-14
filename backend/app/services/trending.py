@@ -174,7 +174,10 @@ class TrendingCardsEngine:
 
         current_active = self._current_active_listings(listings=listings, as_of=as_of)
         if current_active is None:
-            recent_snapshots = [snapshot for snapshot in snapshots if recent_boundary <= _to_utc(snapshot.snapshot_at) <= as_of]
+            recent_snapshots = sorted(
+                (snapshot for snapshot in snapshots if recent_boundary <= _to_utc(snapshot.snapshot_at) <= as_of),
+                key=lambda snapshot: _to_utc(snapshot.snapshot_at),
+            )
             if not recent_snapshots:
                 return None
             current_active = recent_snapshots[-1].listing_count
@@ -241,9 +244,10 @@ class TrendingCardsEngine:
         if recent_average is None or baseline_average in (None, 0.0):
             return None
 
-        baseline_midpoint = len(baseline_sales) // 2
-        earlier_baseline = baseline_sales[:baseline_midpoint]
-        later_baseline = baseline_sales[baseline_midpoint:]
+        ordered_baseline = sorted(baseline_sales, key=lambda sale: _to_utc(sale.sale_date))
+        baseline_midpoint = len(ordered_baseline) // 2
+        earlier_baseline = ordered_baseline[:baseline_midpoint]
+        later_baseline = ordered_baseline[baseline_midpoint:]
         earlier_average = self._average_price(earlier_baseline)
         later_average = self._average_price(later_baseline)
         if earlier_average in (None, 0.0) or later_average is None:
