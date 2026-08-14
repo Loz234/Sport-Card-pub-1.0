@@ -27,3 +27,8 @@ def root() -> dict[str, str]:
         "docs": "/docs",
         "health": f"{settings.api_v1_prefix}/health",
     }
+
+
+@app.get("/health")
+def health() -> dict[str, str]:
+    return {"status": "healthy"}

@@ -52,12 +52,48 @@ npm install
 npm run dev
 ```
 
-## Railway deployment notes
+## Railway deployment
 
-- Deploy backend and frontend as separate Railway services from this monorepo.
-- Use `backend/Dockerfile` for the API service.
-- Set environment variables from `.env.example` in Railway without committing real secrets.
-- Point the frontend `VITE_API_BASE_URL` variable to the deployed backend URL.
+Deploy backend and frontend as separate Railway services from this monorepo.
+
+### 1) Create Railway PostgreSQL
+
+1. In Railway, create a new project.
+2. Add a PostgreSQL service.
+3. Copy the generated connection string and set it as `DATABASE_URL` on the backend service.
+
+### 2) Deploy backend service
+
+1. Add a new service from GitHub and select this repository.
+2. Set the backend service root directory to `backend`.
+3. Build with `backend/Dockerfile`.
+4. Railway will inject `PORT`; the container runs Gunicorn/Uvicorn on `0.0.0.0:$PORT`.
+5. Configure backend environment variables:
+   - `DATABASE_URL` (from Railway PostgreSQL)
+   - `LLM_API_KEY`
+   - `FRONTEND_URL` (deployed frontend URL)
+   - `ENVIRONMENT=production`
+6. Optional: set `CORS_ORIGINS` as a comma-separated list for multiple frontend origins.
+7. Verify health at `GET /health` expecting:
+
+```json
+{
+  "status": "healthy"
+}
+```
+
+### 3) Deploy frontend service
+
+1. Add another Railway service from the same GitHub repository.
+2. Set the frontend service root directory to `frontend`.
+3. Set `VITE_API_BASE_URL` to the deployed backend URL (for example, `https://<backend>.up.railway.app`).
+4. Deploy and verify frontend requests resolve against the configured backend URL.
+
+### Security and secrets
+
+- Never commit real credentials, API keys, or tokens to GitHub.
+- Store all production secrets in Railway environment variables only.
+- Use `.env.example` only as a template with placeholder values.
 
 ## Current scope
 

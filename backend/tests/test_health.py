@@ -20,3 +20,9 @@ def test_health_endpoint_reports_subsystem_boundaries() -> None:
     assert payload["api"]["status"] == "ok"
     assert payload["database"]["status"] == "pending"
     assert payload["machine_learning"]["status"] == "pending"
+
+
+def test_root_health_endpoint_reports_healthy_status() -> None:
+    response = client.get("/health")
+    assert response.status_code == 200
+    assert response.json() == {"status": "healthy"}
