@@ -43,6 +43,8 @@ class RankingPage:
 
 class MoversLosersRankingEngine:
     DATA_QUALITY_THRESHOLD = 0.5
+    MAX_CANDIDATES = 2000
+    PREDICTION_RECENCY_DAYS = 60
 
     def __init__(self, db: Session) -> None:
         self.db = db
@@ -54,15 +56,11 @@ class MoversLosersRankingEngine:
         return self._rank(direction="losers", query=query)
 
     def _rank(self, *, direction: str, query: RankingQuery) -> RankingPage:
-        rows = self._candidate_rows(query=query)
+        rows = self._candidate_rows(query=query, direction=direction)
         ranked: list[RankedCard] = []
 
         for row in rows:
             predicted_change = float(row.predicted_percentage_change)
-            if direction == "movers" and predicted_change <= 0:
-                continue
-            if direction == "losers" and predicted_change >= 0:
-                continue
 
             sales_volume = int(row.sales_volume or 0)
             active_listings = int(row.active_listings or 0)
@@ -95,7 +93,7 @@ class MoversLosersRankingEngine:
                     sport=str(row.sport_name),
                     current_estimated_price=float(row.current_price),
                     predicted_30_day_movement=round(predicted_change, 4),
-                    predicted_direction=("UP" if predicted_change > 0 else "DOWN"),
+                    predicted_direction=str(row.predicted_direction).upper(),
                     confidence=round(confidence, 4),
                     data_quality=data_quality,
                     model_version=str(row.model_version),
@@ -117,9 +115,10 @@ class MoversLosersRankingEngine:
             data_quality_threshold=self.DATA_QUALITY_THRESHOLD,
         )
 
-    def _candidate_rows(self, *, query: RankingQuery):
+    def _candidate_rows(self, *, query: RankingQuery, direction: str):
         now = datetime.now(UTC)
         sales_since = now - timedelta(days=30)
+        prediction_since = now - timedelta(days=self.PREDICTION_RECENCY_DAYS)
 
         latest_prediction = (
             select(
@@ -135,6 +134,7 @@ class MoversLosersRankingEngine:
                 ).label("row_number"),
             )
             .where(Prediction.prediction_horizon_days == 30)
+            .where(Prediction.prediction_date >= prediction_since)
             .subquery()
         )
 
@@ -187,6 +187,11 @@ class MoversLosersRankingEngine:
 
         if query.sport:
             statement = statement.where(func.lower(Sport.name) == query.sport.lower())
+        if direction == "movers":
+            statement = statement.where(latest_prediction.c.predicted_percentage_change > 0)
+        else:
+            statement = statement.where(latest_prediction.c.predicted_percentage_change < 0)
+        statement = statement.order_by(func.abs(latest_prediction.c.predicted_percentage_change).desc()).limit(self.MAX_CANDIDATES)
 
         return self.db.execute(statement).all()
 

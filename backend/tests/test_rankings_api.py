@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 
+import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -233,33 +234,38 @@ def _seed_rankings_data(db: Session) -> None:
     db.commit()
 
 
-def _client_with_seeded_db() -> TestClient:
+@pytest.fixture
+def client() -> TestClient:
     engine = create_engine(
         "sqlite+pysqlite://",
         future=True,
         connect_args={"check_same_thread": False},
         poolclass=StaticPool,
     )
-    SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    session_local = sessionmaker(bind=engine, autoflush=False, autocommit=False)
     Base.metadata.create_all(bind=engine)
 
-    with SessionLocal() as session:
+    with session_local() as session:
         _seed_rankings_data(session)
 
     def override_get_db():
-        db = SessionLocal()
+        db = session_local()
         try:
             yield db
         finally:
             db.close()
 
     app.dependency_overrides[get_db] = override_get_db
-    return TestClient(app)
+    client_instance = TestClient(app)
+    try:
+        yield client_instance
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+        client_instance.close()
+        engine.dispose()
 
 
-def test_movers_endpoint_returns_ranked_cards_with_required_fields() -> None:
-    client = _client_with_seeded_db()
-
+def test_movers_endpoint_returns_ranked_cards_with_required_fields(client: TestClient) -> None:
     response = client.get("/api/v1/movers", params={"min_confidence": 0.8})
 
     assert response.status_code == 200
@@ -277,11 +283,7 @@ def test_movers_endpoint_returns_ranked_cards_with_required_fields() -> None:
     assert item["data_quality"] >= 0.5
     assert item["model_version"] == "xgb-v2"
 
-
-
-def test_losers_endpoint_supports_sport_filter_and_min_sales_volume() -> None:
-    client = _client_with_seeded_db()
-
+def test_losers_endpoint_supports_sport_filter_and_min_sales_volume(client: TestClient) -> None:
     response = client.get(
         "/api/v1/losers",
         params={"sport": "football", "min_confidence": 0.8, "min_sales_volume": 10},
@@ -294,11 +296,7 @@ def test_losers_endpoint_supports_sport_filter_and_min_sales_volume() -> None:
     assert payload["items"][0]["card_name"] == "2019 Panini Select #15"
     assert payload["items"][0]["predicted_direction"] == "DOWN"
 
-
-
-def test_rankings_pagination_is_supported() -> None:
-    client = _client_with_seeded_db()
-
+def test_rankings_pagination_is_supported(client: TestClient) -> None:
     first_page = client.get("/api/v1/losers", params={"min_confidence": 0.8, "page": 1, "page_size": 1})
     second_page = client.get("/api/v1/losers", params={"min_confidence": 0.8, "page": 2, "page_size": 1})
 
