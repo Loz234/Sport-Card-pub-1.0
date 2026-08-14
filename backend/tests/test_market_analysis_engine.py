@@ -47,11 +47,11 @@ def test_market_analysis_engine_normal_market() -> None:
     assert metrics.average_price_30d == pytest.approx(100, abs=2)
     assert metrics.average_price_90d == pytest.approx(100, abs=2)
     assert metrics.price_change == pytest.approx(0.0, abs=0.03)
-    assert metrics.sales_volume == 6
-    assert metrics.sales_velocity == pytest.approx(6 / 90)
+    assert metrics.sales_volume == 4
+    assert metrics.sales_velocity == pytest.approx(4 / 30)
     assert metrics.price_volatility is not None and metrics.price_volatility < 0.02
     assert metrics.active_listings == 3
-    assert metrics.listing_to_sales_ratio == pytest.approx(0.5)
+    assert metrics.listing_to_sales_ratio == pytest.approx(0.75)
 
 
 def test_market_analysis_engine_rising_market() -> None:
@@ -89,7 +89,7 @@ def test_market_analysis_engine_low_volume_market() -> None:
     )
 
     assert metrics.sales_volume == 1
-    assert metrics.sales_velocity == pytest.approx(1 / 90)
+    assert metrics.sales_velocity == pytest.approx(1 / 30)
     assert metrics.average_price_7d == pytest.approx(105)
     assert metrics.price_volatility is None
     assert metrics.listing_to_sales_ratio == pytest.approx(1.0)
@@ -123,7 +123,7 @@ def test_market_analysis_engine_outlier_detection() -> None:
 
     metrics = engine.calculate_metrics(sales=sales, as_of=datetime(2026, 8, 14, tzinfo=UTC))
 
-    assert metrics.sales_volume == 4
+    assert metrics.sales_volume == 5
     assert metrics.average_price_90d is not None
     assert metrics.average_price_90d < 150
     assert metrics.median_price_90d == pytest.approx(100, abs=2)

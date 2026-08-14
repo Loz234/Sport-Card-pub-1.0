@@ -9,6 +9,12 @@ from typing import Iterable
 from app.models.domain import HistoricalSale, MarketListing
 
 
+def _to_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=UTC)
+    return value.astimezone(UTC)
+
+
 @dataclass(frozen=True)
 class MarketSignalSummary:
     movers_ready: bool = True
@@ -55,23 +61,27 @@ class MarketAnalysisEngine:
         valid_sales = self._sales_up_to_date(sales=sales, as_of=as_of_utc)
 
         sales_7d = self._window_sales(valid_sales=valid_sales, as_of=as_of_utc, days=7)
-        sales_30d = self._window_sales(valid_sales=valid_sales, as_of=as_of_utc, days=30)
-        sales_90d = self._window_sales(valid_sales=valid_sales, as_of=as_of_utc, days=90)
+        raw_sales_30d = self._window_sales(valid_sales=valid_sales, as_of=as_of_utc, days=30)
+        raw_sales_90d = self._window_sales(valid_sales=valid_sales, as_of=as_of_utc, days=90)
 
         sales_7d = self._remove_outliers(sales_7d)
-        sales_30d = self._remove_outliers(sales_30d)
-        sales_90d = self._remove_outliers(sales_90d)
+        sales_30d = self._remove_outliers(raw_sales_30d)
+        sales_90d = self._remove_outliers(raw_sales_90d)
+        baseline_sales = self._remove_outliers(self._window_sales_excluding_recent(valid_sales, as_of_utc, days=30, recent_days=7))
 
         avg_7d = self._weighted_average(sales_7d, as_of_utc)
         avg_30d = self._weighted_average(sales_30d, as_of_utc)
         avg_90d = self._weighted_average(sales_90d, as_of_utc)
+        baseline_avg = self._weighted_average(baseline_sales, as_of_utc)
+        if baseline_avg in (None, 0.0):
+            baseline_avg = avg_90d
 
         price_change = None
-        if avg_7d is not None and avg_30d not in (None, 0.0):
-            price_change = (avg_7d - avg_30d) / avg_30d
+        if avg_7d is not None and baseline_avg not in (None, 0.0):
+            price_change = (avg_7d - baseline_avg) / baseline_avg
 
-        volume = len(sales_90d)
-        velocity = volume / 90 if volume else 0.0
+        volume = len(raw_sales_30d)
+        velocity = volume / 30 if volume else 0.0
         volatility = self._volatility(sales_90d)
 
         active_listings = self._active_listing_count(listings=listings, as_of=as_of_utc)
@@ -107,6 +117,18 @@ class MarketAnalysisEngine:
     def _window_sales(self, *, valid_sales: list[_SalePoint], as_of: datetime, days: int) -> list[_SalePoint]:
         start = as_of - timedelta(days=days)
         return [sale for sale in valid_sales if sale.sale_date >= start]
+
+    def _window_sales_excluding_recent(
+        self,
+        valid_sales: list[_SalePoint],
+        as_of: datetime,
+        *,
+        days: int,
+        recent_days: int,
+    ) -> list[_SalePoint]:
+        start = as_of - timedelta(days=days)
+        recent_boundary = as_of - timedelta(days=recent_days)
+        return [sale for sale in valid_sales if start <= sale.sale_date < recent_boundary]
 
     def _remove_outliers(self, sales: list[_SalePoint]) -> list[_SalePoint]:
         if len(sales) < 4:
@@ -169,7 +191,7 @@ class MarketAnalysisEngine:
         return exp(-log(2) * days_ago / self.half_life_days)
 
     def _active_listing_count(self, *, listings: Iterable[MarketListing] | None, as_of: datetime) -> int:
-        if not listings:
+        if listings is None:
             return 0
         count = 0
         for listing in listings:
@@ -190,9 +212,3 @@ __all__ = [
     "MarketAnalysisEngine",
     "get_market_signal_capabilities",
 ]
-
-
-def _to_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=UTC)
-    return value.astimezone(UTC)
