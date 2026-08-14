@@ -6,7 +6,7 @@ from math import tanh
 from statistics import mean, median
 
 from sqlalchemy import exists, select
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session, selectinload, with_loader_criteria
 
 from app.models.domain import Card, HistoricalSale, MarketListing, MarketSnapshot
 
@@ -45,12 +45,17 @@ class TrendingCardsEngine:
     def get_trending(self) -> list[TrendingCard]:
         as_of = datetime.now(UTC)
         cards = self._candidate_cards(as_of=as_of)
-        ranked = [card for candidate in cards if (card := self._build_trending_card(card=candidate, as_of=as_of)) is not None]
+        ranked = [
+            trending_card
+            for candidate in cards
+            if (trending_card := self._build_trending_card(card=candidate, as_of=as_of)) is not None
+        ]
         ranked.sort(key=lambda item: item.trending_score, reverse=True)
         return ranked
 
     def _candidate_cards(self, *, as_of: datetime) -> list[Card]:
         sales_since = as_of - timedelta(days=self.HISTORICAL_WINDOW_DAYS)
+        snapshots_since = as_of - timedelta(days=self.RECENT_WINDOW_DAYS + self.BASELINE_WINDOW_DAYS)
         statement = (
             select(Card)
             .options(
@@ -59,6 +64,21 @@ class TrendingCardsEngine:
                 selectinload(Card.historical_sales),
                 selectinload(Card.market_listings),
                 selectinload(Card.market_snapshots),
+                with_loader_criteria(
+                    HistoricalSale,
+                    HistoricalSale.sale_date >= sales_since,
+                    include_aliases=True,
+                ),
+                with_loader_criteria(
+                    MarketListing,
+                    MarketListing.listing_date <= as_of,
+                    include_aliases=True,
+                ),
+                with_loader_criteria(
+                    MarketSnapshot,
+                    MarketSnapshot.snapshot_at >= snapshots_since,
+                    include_aliases=True,
+                ),
             )
             .where(
                 exists(
