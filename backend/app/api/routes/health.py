@@ -17,5 +17,8 @@ def health_check() -> HealthCheckResponse:
         ingestion=ServiceStatus(status="pending", detail="Data ingestion layer is scaffolded with synthetic development inputs only."),
         market_analysis=ServiceStatus(status="pending", detail="Market analysis service boundaries are defined but no live analytics run yet."),
         machine_learning=ServiceStatus(status="pending", detail="ML module interfaces exist but no trained model is shipped in the scaffold."),
-        ai_explanation=ServiceStatus(status="pending", detail="AI explanation boundary exists but no external LLM integration is active."),
+        ai_explanation=ServiceStatus(
+            status="ok",
+            detail="AI market analyst service is active with provider abstraction; external LLM provider can be configured.",
+        ),
     )

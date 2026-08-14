@@ -20,12 +20,17 @@ class AIPredictionResponse(BaseModel):
     sales_volume: int
     sales_velocity: float
     trending_score: float | None
+    data_quality: str
     disclaimer: str
 
 
 class PredictionExplanationResponse(BaseModel):
     generated_from_validated_backend_data: bool
-    reasons: list[str]
+    summary: str
+    positive_signals: list[str]
+    risks: list[str]
+    why_model_may_be_wrong: list[str]
+    confidence: str
 
 
 class CardDetailResponse(BaseModel):

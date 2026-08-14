@@ -194,6 +194,7 @@ export function CardDetailPage({ cardId, onBack }: CardDetailPageProps) {
               <MetricCard label="Sales volume" value={detail.item.ai_prediction.sales_volume.toString()} />
               <MetricCard label="Sales velocity" value={`${detail.item.ai_prediction.sales_velocity.toFixed(2)} / day`} />
               <MetricCard label="Trending score" value={detail.item.ai_prediction.trending_score === null ? 'N/A' : detail.item.ai_prediction.trending_score.toFixed(2)} />
+              <MetricCard label="Data quality" value={detail.item.ai_prediction.data_quality.toUpperCase()} />
             </div>
           </section>
 
@@ -201,11 +202,27 @@ export function CardDetailPage({ cardId, onBack }: CardDetailPageProps) {
             <p className="eyebrow">Why is AI predicting this?</p>
             <h2>Explanation</h2>
             <p className="supporting-copy">Generated from validated backend data only. No unsupported statistics are shown.</p>
+            <p className="supporting-copy">{detail.item.explanation.summary}</p>
+            <h3>Positive signals</h3>
             <ul className="explanation-list">
-            {detail.item.explanation.reasons.map((reason, index) => (
-              <li key={`${index}`}>{reason}</li>
+            {detail.item.explanation.positive_signals.map((reason, index) => (
+              <li key={`positive-${index}`}>{reason}</li>
               ))}
             </ul>
+            <h3>Risks</h3>
+            <ul className="explanation-list">
+            {detail.item.explanation.risks.map((reason, index) => (
+              <li key={`risk-${index}`}>{reason}</li>
+              ))}
+            </ul>
+            <h3>Why the model may be wrong</h3>
+            <ul className="explanation-list">
+            {detail.item.explanation.why_model_may_be_wrong.map((reason, index) => (
+              <li key={`wrong-${index}`}>{reason}</li>
+              ))}
+            </ul>
+            <h3>Confidence</h3>
+            <p className="supporting-copy">{detail.item.explanation.confidence}</p>
           </section>
         </>
       )}

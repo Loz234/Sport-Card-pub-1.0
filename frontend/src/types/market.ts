@@ -62,11 +62,16 @@ export interface CardDetail {
     sales_volume: number
     sales_velocity: number
     trending_score: number | null
+    data_quality: string
     disclaimer: string
   }
   explanation: {
     generated_from_validated_backend_data: boolean
-    reasons: string[]
+    summary: string
+    positive_signals: string[]
+    risks: string[]
+    why_model_may_be_wrong: string[]
+    confidence: string
   }
 }
 

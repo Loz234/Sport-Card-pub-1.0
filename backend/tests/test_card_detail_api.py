@@ -190,9 +190,14 @@ def test_card_detail_endpoint_returns_historical_and_prediction_sections(client:
     assert payload["ai_prediction"]["sales_volume"] == 10
     assert payload["ai_prediction"]["sales_velocity"] > 0
     assert payload["ai_prediction"]["trending_score"] is not None
+    assert payload["ai_prediction"]["data_quality"] in {"high", "medium", "low", "unknown"}
     assert "not guaranteed future returns or financial advice" in payload["ai_prediction"]["disclaimer"]
     assert payload["explanation"]["generated_from_validated_backend_data"] is True
-    assert all("validated" in reason.lower() or "$" in reason for reason in payload["explanation"]["reasons"])
+    assert payload["explanation"]["summary"]
+    assert payload["explanation"]["positive_signals"]
+    assert payload["explanation"]["risks"]
+    assert payload["explanation"]["why_model_may_be_wrong"]
+    assert "certainty" in payload["explanation"]["confidence"].lower() or "probabilistic" in payload["explanation"]["confidence"].lower()
 
 
 def test_add_to_watchlist_endpoint_is_idempotent(client: TestClient) -> None:

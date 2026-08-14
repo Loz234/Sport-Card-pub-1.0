@@ -7,6 +7,8 @@ from fastapi import HTTPException
 from sqlalchemy import select
 from sqlalchemy.orm import Session, selectinload
 
+from app.ai.market_analyst_service import MarketAnalystInput, MarketAnalystService, get_market_analyst_provider
+from app.config import get_settings
 from app.models.domain import Card, CardVariant, Prediction, Watchlist
 from app.schemas.card_detail import (
     AIPredictionResponse,
@@ -40,6 +42,8 @@ class CardDetailService:
         self.db = db
         self.market_analysis = MarketAnalysisEngine()
         self.trending_engine = TrendingCardsEngine(db)
+        settings = get_settings()
+        self.market_analyst_service = MarketAnalystService(get_market_analyst_provider(settings.llm_provider))
 
     def get_card_detail(self, card_id: int) -> CardDetailResponse:
         card = self._load_card(card_id)
@@ -50,22 +54,39 @@ class CardDetailService:
             listings=card.market_listings,
             as_of=as_of,
         )
-        explanation = self._build_explanation(prediction_summary=prediction_summary, metrics=metrics)
+        current_estimated_market_value = self._current_estimated_market_value(card=card, prediction_summary=prediction_summary)
+        card_name = build_card_name(
+            year=card.year,
+            manufacturer=card.manufacturer,
+            set_name=card.set_name,
+            card_number=card.card_number,
+        )
+        trending_score = self._trending_score(card=card, as_of=as_of)
+        data_quality = self._data_quality(prediction_summary=prediction_summary, metrics=metrics, trending_score=trending_score)
+        explanation = self.market_analyst_service.generate_report(
+            MarketAnalystInput(
+                card_name=card_name,
+                current_price=current_estimated_market_value,
+                recent_prices=tuple(self._recent_prices(card=card, as_of=as_of, days=30)),
+                predicted_movement=prediction_summary.movement_30d,
+                confidence=prediction_summary.confidence,
+                sales_volume=metrics.sales_volume,
+                sales_velocity=round(metrics.sales_velocity, 2),
+                momentum=round(metrics.price_change * 100, 2) if metrics.price_change is not None else None,
+                trending_score=trending_score,
+                data_quality=data_quality,
+            )
+        )
 
         return CardDetailResponse(
             card_id=card.id,
-            card_name=build_card_name(
-                year=card.year,
-                manufacturer=card.manufacturer,
-                set_name=card.set_name,
-                card_number=card.card_number,
-            ),
+            card_name=card_name,
             player=card.player.name if card.player is not None else "Unknown",
             sport=card.sport.name if card.sport is not None else "Unknown",
             set_name=card.set_name,
             parallel=self._parallel(card),
             grade=self._grade(card),
-            current_estimated_market_value=self._current_estimated_market_value(card=card, prediction_summary=prediction_summary),
+            current_estimated_market_value=current_estimated_market_value,
             historical_market_data=HistoricalMarketDataResponse(
                 price_points=self._historical_price_points(card=card, as_of=as_of),
                 available_ranges=["7d", "30d", "90d", "1y"],
@@ -78,12 +99,17 @@ class CardDetailService:
                 market_momentum=round(metrics.price_change * 100, 2) if metrics.price_change is not None else None,
                 sales_volume=metrics.sales_volume,
                 sales_velocity=round(metrics.sales_velocity, 2),
-                trending_score=self._trending_score(card=card, as_of=as_of),
+                trending_score=trending_score,
+                data_quality=data_quality,
                 disclaimer=_DISCLAIMER,
             ),
             explanation=PredictionExplanationResponse(
                 generated_from_validated_backend_data=True,
-                reasons=explanation,
+                summary=explanation.summary,
+                positive_signals=list(explanation.positive_signals),
+                risks=list(explanation.risks),
+                why_model_may_be_wrong=list(explanation.why_model_may_be_wrong),
+                confidence=explanation.confidence,
             ),
         )
 
@@ -194,30 +220,37 @@ class CardDetailService:
     def _trending_score(self, *, card: Card, as_of: datetime) -> float | None:
         return self.trending_engine.get_trending_score_for_card(card=card, as_of=as_of)
 
-    def _build_explanation(self, *, prediction_summary: _PredictionSummary, metrics: MarketMetrics) -> list[str]:
-        reasons: list[str] = []
+    def _recent_prices(self, *, card: Card, as_of: datetime, days: int) -> list[float]:
+        cutoff = self._to_utc(as_of) - timedelta(days=days)
+        recent_sales = [
+            sale
+            for sale in sorted(card.historical_sales, key=lambda item: item.sale_date, reverse=True)
+            if self._to_utc(sale.sale_date) >= cutoff and float(sale.sale_price) > 0
+        ]
+        return [round(float(sale.sale_price), 2) for sale in recent_sales]
 
-        if prediction_summary.movement_30d is not None and prediction_summary.direction is not None:
-            reasons.append(
-                f"The latest validated 30-day model output points {prediction_summary.direction} with an expected move of {prediction_summary.movement_30d:+.2f}%."
-            )
-        if prediction_summary.movement_90d is not None:
-            reasons.append(
-                f"The validated 90-day model output projects {prediction_summary.movement_90d:+.2f}% from the current estimate."
-            )
-        if metrics.median_price_7d is not None and metrics.median_price_30d is not None:
-            reasons.append(
-                f"Recent historical sales show a 7-day weighted median of ${metrics.median_price_7d:.2f} versus a 30-day weighted median of ${metrics.median_price_30d:.2f}."
-            )
-        if metrics.price_change is not None:
-            reasons.append(
-                f"Validated market momentum is {metrics.price_change * 100:+.2f}% based on recent sales versus the prior baseline window."
-            )
-        reasons.append(
-            f"The backend has {metrics.sales_volume} validated sales in the last 30 days, which is a sales velocity of {metrics.sales_velocity:.2f} sales per day."
-        )
+    def _data_quality(self, *, prediction_summary: _PredictionSummary, metrics: MarketMetrics, trending_score: float | None) -> str:
+        quality_points = 0
+        if prediction_summary.confidence is not None:
+            quality_points += 1
+        if metrics.sales_volume >= 8:
+            quality_points += 1
+        if metrics.sales_volume >= 20:
+            quality_points += 1
+        if metrics.sales_velocity >= 0.2:
+            quality_points += 1
+        if metrics.price_volatility is not None:
+            quality_points += 1
+        if trending_score is not None:
+            quality_points += 1
 
-        return reasons[:4] if len(reasons) > 4 else reasons
+        if quality_points >= 5:
+            return "high"
+        if quality_points >= 3:
+            return "medium"
+        if quality_points >= 1:
+            return "low"
+        return "unknown"
 
     def _analysis_as_of(self, card: Card) -> datetime:
         timestamps: list[datetime] = []
