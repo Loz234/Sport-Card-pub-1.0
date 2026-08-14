@@ -280,9 +280,10 @@ class CardSignalPredictionEngine:
             raise ValueError("Model must be trained before evaluation.")
         xgb_metrics: dict[int, RegressionMetrics] = {}
         baseline_metrics: dict[int, RegressionMetrics] = {}
+        feature_matrix = self._features_matrix(test_vectors)
         for horizon in _HORIZONS:
-            _, y_true = self._matrix(test_vectors, horizon=horizon)
-            y_pred_xgb = self._models[horizon].predict(self._features_matrix(test_vectors))
+            y_true = np.array([vector.targets[horizon] for vector in test_vectors], dtype=np.float64)
+            y_pred_xgb = self._models[horizon].predict(feature_matrix)
             y_pred_baseline = np.array(
                 [self.baseline_model.predict(vector.values, horizon=horizon) for vector in test_vectors],
                 dtype=np.float64,
