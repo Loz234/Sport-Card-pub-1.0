@@ -34,6 +34,11 @@ CardSignal AI is a sports card market intelligence platform scaffolded for a Fas
 
 ## Local development
 
+Use separate templates for environment setup:
+
+- `.env.development.example` for local development
+- `.env.production.example` for production reference values
+
 ### Backend
 
 ```bash
@@ -41,6 +46,7 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+cp ../.env.development.example .env
 uvicorn app.main:app --reload
 ```
 
@@ -67,14 +73,18 @@ Deploy backend and frontend as separate Railway services from this monorepo.
 1. Add a new service from GitHub and select this repository.
 2. Set the backend service root directory to `backend`.
 3. Build with `backend/Dockerfile`.
-4. Railway will inject `PORT`; the container runs Gunicorn/Uvicorn on `0.0.0.0:$PORT`.
-5. Configure backend environment variables:
+4. Railway will inject `PORT`; the container:
+   - runs `alembic upgrade head` to apply pending migrations
+   - then starts Gunicorn/Uvicorn on `0.0.0.0:$PORT`
+5. `alembic upgrade head` is safe to run repeatedly: only unapplied migrations execute.
+6. Configure backend environment variables:
    - `DATABASE_URL` (from Railway PostgreSQL)
    - `LLM_API_KEY`
    - `FRONTEND_URL` (deployed frontend URL)
    - `ENVIRONMENT=production`
-6. Optional: set `CORS_ORIGINS` as a comma-separated list for multiple frontend origins.
-7. Verify health at `GET /health` expecting:
+   - `RUN_DB_MIGRATIONS=true` (default; set `false` only for controlled/manual runs)
+7. Optional: set `CORS_ORIGINS` as a comma-separated list for multiple frontend origins.
+8. Verify health at `GET /health` (this endpoint checks database connectivity) expecting:
 
 ```json
 {
@@ -93,7 +103,8 @@ Deploy backend and frontend as separate Railway services from this monorepo.
 
 - Never commit real credentials, API keys, or tokens to GitHub.
 - Store all production secrets in Railway environment variables only.
-- Use `.env.example` only as a template with placeholder values.
+- Use `.env.example`, `.env.development.example`, and `.env.production.example` only as templates with placeholder values.
+- Synthetic development data is not auto-seeded in production deployment.
 
 ## Current scope
 

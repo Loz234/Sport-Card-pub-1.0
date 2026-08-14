@@ -1,9 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 from app.api.router import api_router
 from app.api.routes.trending import router as trending_router
 from app.config import get_settings
+from app.database import get_engine
 
 settings = get_settings()
 
@@ -31,4 +34,9 @@ def root() -> dict[str, str]:
 
 @app.get("/health")
 def health() -> dict[str, str]:
+    try:
+        with get_engine().connect() as connection:
+            connection.execute(text("SELECT 1"))
+    except SQLAlchemyError as exc:
+        raise HTTPException(status_code=503, detail="Database connectivity check failed.") from exc
     return {"status": "healthy"}
