@@ -197,7 +197,7 @@ def test_trending_engine_only_returns_cards_with_sufficient_data() -> None:
 
 
 def test_trending_endpoint_returns_signals_without_inventing_missing_supply_data(client: TestClient) -> None:
-    response = client.get("/api/v1/trending")
+    response = client.get("/api/trending")
 
     assert response.status_code == 200
     payload = response.json()
@@ -222,3 +222,10 @@ def test_trending_endpoint_returns_signals_without_inventing_missing_supply_data
     assert falling["sales_momentum"] > 0
     assert falling["supply_signal"] is None
     assert falling["activity_signal"] > 0
+
+
+def test_trending_endpoint_is_available_under_versioned_api_prefix(client: TestClient) -> None:
+    response = client.get("/api/v1/trending")
+
+    assert response.status_code == 200
+    assert len(response.json()["items"]) == 2

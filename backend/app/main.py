@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
+from app.api.routes.trending import router as trending_router
 from app.config import get_settings
 
 settings = get_settings()
@@ -15,6 +16,7 @@ app.add_middleware(
     allow_headers=["Authorization", "Content-Type"],
 )
 app.include_router(api_router, prefix=settings.api_v1_prefix)
+app.include_router(trending_router, prefix="/api", tags=["trending"])
 
 
 @app.get("/")
