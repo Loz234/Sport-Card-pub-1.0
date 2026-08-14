@@ -7,6 +7,7 @@ from sqlalchemy import Select, and_, func, select
 from sqlalchemy.orm import Session
 
 from app.models.domain import Card, HistoricalSale, MarketListing, Player, Prediction, Sport
+from app.services.utils import build_card_name
 
 
 @dataclass(frozen=True)
@@ -222,10 +223,12 @@ class MoversLosersRankingEngine:
         return min(1.0, max(0.0, base * (0.65 + (0.35 * confidence))))
 
     def _card_name(self, *, year: int, manufacturer: str, set_name: str, card_number: str) -> str:
-        core = f"{year} {manufacturer} {set_name}".strip()
-        if card_number:
-            return f"{core} #{card_number}"
-        return core
+        return build_card_name(
+            year=year,
+            manufacturer=manufacturer,
+            set_name=set_name,
+            card_number=card_number,
+        )
 
 
 __all__ = [

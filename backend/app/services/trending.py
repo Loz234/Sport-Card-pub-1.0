@@ -9,6 +9,7 @@ from sqlalchemy import exists, select
 from sqlalchemy.orm import Session, selectinload, with_loader_criteria
 
 from app.models.domain import Card, HistoricalSale, MarketListing, MarketSnapshot
+from app.services.utils import build_card_name
 
 
 def _to_utc(value: datetime) -> datetime:
@@ -142,7 +143,7 @@ class TrendingCardsEngine:
         sport_name = card.sport.name if card.sport is not None else ""
 
         return TrendingCard(
-            card_name=self._card_name(
+            card_name=build_card_name(
                 year=card.year,
                 manufacturer=card.manufacturer,
                 set_name=card.set_name,
@@ -304,12 +305,5 @@ class TrendingCardsEngine:
         if scale <= 0:
             return 0.0
         return tanh(value / scale)
-
-    def _card_name(self, *, year: int, manufacturer: str, set_name: str, card_number: str) -> str:
-        core = f"{year} {manufacturer} {set_name}".strip()
-        if card_number:
-            return f"{core} #{card_number}"
-        return core
-
 
 __all__ = ["TrendingCard", "TrendingCardsEngine"]
