@@ -1,5 +1,6 @@
 from app.schemas.health import HealthCheckResponse, ServiceStatus
 from app.schemas.ranking import RankedCardResponse, RankedCardsPageResponse
+from app.schemas.trending import TrendingCardResponse, TrendingCardsResponse
 from app.schemas.database import (
     CardCreate,
     CardRead,
@@ -28,6 +29,8 @@ __all__ = [
     "ServiceStatus",
     "RankedCardResponse",
     "RankedCardsPageResponse",
+    "TrendingCardResponse",
+    "TrendingCardsResponse",
     "SportCreate",
     "SportRead",
     "PlayerCreate",
