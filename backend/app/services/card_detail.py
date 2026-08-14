@@ -43,11 +43,12 @@ class CardDetailService:
 
     def get_card_detail(self, card_id: int) -> CardDetailResponse:
         card = self._load_card(card_id)
+        as_of = self._analysis_as_of(card)
         prediction_summary = self._prediction_summary(card)
         metrics = self.market_analysis.calculate_metrics(
             sales=card.historical_sales,
             listings=card.market_listings,
-            as_of=datetime.now(UTC),
+            as_of=as_of,
         )
         explanation = self._build_explanation(prediction_summary=prediction_summary, metrics=metrics)
 
@@ -220,6 +221,16 @@ class CardDetailService:
         )
 
         return reasons[:4] if len(reasons) > 4 else reasons
+
+    def _analysis_as_of(self, card: Card) -> datetime:
+        timestamps: list[datetime] = []
+        timestamps.extend(self._to_utc(sale.sale_date) for sale in card.historical_sales)
+        timestamps.extend(self._to_utc(listing.listing_date) for listing in card.market_listings)
+        timestamps.extend(self._to_utc(snapshot.snapshot_at) for snapshot in card.market_snapshots)
+        timestamps.extend(self._to_utc(prediction.prediction_date) for prediction in card.predictions)
+        if not timestamps:
+            return datetime.now(UTC)
+        return max(timestamps)
 
     def _to_utc(self, value: datetime) -> datetime:
         if value.tzinfo is None:
