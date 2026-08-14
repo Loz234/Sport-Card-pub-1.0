@@ -160,9 +160,6 @@ export function DashboardPage({ onSelectCard }: DashboardPageProps) {
               <button type="button" className="card-action" onClick={() => onSelectCard(item.card_id)}>
                 View details
               </button>
-              <button type="button" className="card-action" onClick={() => onSelectCard(item.card_id)}>
-                View details
-              </button>
             </article>
           ))}
         </div>
