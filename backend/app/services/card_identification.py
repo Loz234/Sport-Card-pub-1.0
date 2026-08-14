@@ -333,7 +333,11 @@ class CardParser:
         if not payload["is_memorabilia"] and llm_result.get("is_memorabilia") is True:
             payload["is_memorabilia"] = True
 
-        score += min(0.18, 0.06 * filled_core)
+        if payload["sport"] is None and payload["player"] in self.normalizer.PLAYER_SPORT_LOOKUP:
+            payload["sport"] = self.normalizer.PLAYER_SPORT_LOOKUP[payload["player"]]
+            score += 0.06
+
+        score += min(0.21, 0.07 * filled_core)
         return ParsedCard(**payload), score
 
     def _apply_validation(self, parsed: ParsedCard, score: float) -> tuple[ParsedCard, float]:
