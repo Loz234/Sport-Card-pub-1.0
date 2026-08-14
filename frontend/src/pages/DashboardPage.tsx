@@ -34,6 +34,28 @@ function matchesSearch(searchTerm: string, ...fields: string[]): boolean {
   return fields.some((value) => value.toLowerCase().includes(term))
 }
 
+function directionLabel(direction: string): string {
+  const normalized = direction.toLowerCase()
+  if (normalized === 'up') {
+    return 'UP ▲'
+  }
+  if (normalized === 'down') {
+    return 'DOWN ▼'
+  }
+  return 'STABLE ■'
+}
+
+function directionClass(direction: string): string {
+  const normalized = direction.toLowerCase()
+  if (normalized === 'up') {
+    return 'up'
+  }
+  if (normalized === 'down') {
+    return 'down'
+  }
+  return 'neutral'
+}
+
 export function DashboardPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [movers, setMovers] = useState<SectionState<RankedCard>>(initialSectionState)
@@ -105,12 +127,12 @@ export function DashboardPage() {
 
   return (
     <section className="dashboard">
-      <div className="search-wrap">
-        <label htmlFor="search" className="search-label">
+      <div id="search" className="search-wrap">
+        <label htmlFor="search-input" className="search-label">
           Search
         </label>
         <input
-          id="search"
+          id="search-input"
           type="search"
           value={searchTerm}
           onChange={(event) => {
@@ -121,7 +143,7 @@ export function DashboardPage() {
         />
       </div>
 
-      <Section title="TOP MOVERS" loading={movers.loading} error={movers.error} isEmpty={filteredMovers.length === 0}>
+      <Section id="movers" title="TOP MOVERS" loading={movers.loading} error={movers.error} isEmpty={filteredMovers.length === 0}>
         <div className="card-grid">
           {filteredMovers.map((item) => (
             <article className="data-card" key={`mover-${item.card_name}-${item.player}`}>
@@ -130,13 +152,13 @@ export function DashboardPage() {
               <p>Current price: {formatCurrency(item.current_estimated_price)}</p>
               <p>Predicted 30-day movement: {formatPercent(item.predicted_30_day_movement)}</p>
               <p>Confidence: {formatPercent(item.confidence * 100)}</p>
-              <p className="up">UP ▲</p>
+              <p className={directionClass(item.predicted_direction)}>{directionLabel(item.predicted_direction)}</p>
             </article>
           ))}
         </div>
       </Section>
 
-      <Section title="TOP LOSERS" loading={losers.loading} error={losers.error} isEmpty={filteredLosers.length === 0}>
+      <Section id="losers" title="TOP LOSERS" loading={losers.loading} error={losers.error} isEmpty={filteredLosers.length === 0}>
         <div className="card-grid">
           {filteredLosers.map((item) => (
             <article className="data-card" key={`loser-${item.card_name}-${item.player}`}>
@@ -145,13 +167,14 @@ export function DashboardPage() {
               <p>Current price: {formatCurrency(item.current_estimated_price)}</p>
               <p>Predicted 30-day movement: {formatPercent(item.predicted_30_day_movement)}</p>
               <p>Confidence: {formatPercent(item.confidence * 100)}</p>
-              <p className="down">DOWN ▼</p>
+              <p className={directionClass(item.predicted_direction)}>{directionLabel(item.predicted_direction)}</p>
             </article>
           ))}
         </div>
       </Section>
 
       <Section
+        id="trending"
         title="TRENDING NOW"
         loading={trending.loading}
         error={trending.error}
@@ -168,11 +191,17 @@ export function DashboardPage() {
           ))}
         </div>
       </Section>
+
+      <section id="watchlist" className="section">
+        <h2>WATCHLIST</h2>
+        <p className="state">Watchlist data is not available yet.</p>
+      </section>
     </section>
   )
 }
 
 interface SectionProps {
+  id?: string
   title: string
   loading: boolean
   error: string | null
@@ -180,9 +209,9 @@ interface SectionProps {
   children: ReactNode
 }
 
-function Section({ title, loading, error, isEmpty, children }: SectionProps) {
+function Section({ id, title, loading, error, isEmpty, children }: SectionProps) {
   return (
-    <section className="section">
+    <section id={id} className="section">
       <h2>{title}</h2>
       {loading && <p className="state">Loading…</p>}
       {!loading && error && <p className="state error">{error}</p>}

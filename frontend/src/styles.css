@@ -43,7 +43,14 @@ body {
   border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
+  padding: 0;
+}
+
+.nav-list a {
+  color: inherit;
+  display: block;
   padding: 0.35rem 0.75rem;
+  text-decoration: none;
 }
 
 .dashboard {
@@ -108,6 +115,11 @@ body {
 
 .down {
   color: #b42318;
+  font-weight: 700;
+}
+
+.neutral {
+  color: #344054;
   font-weight: 700;
 }
 

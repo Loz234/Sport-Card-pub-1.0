@@ -9,11 +9,21 @@ export function AppShell({ children }: PropsWithChildren) {
         <p className="subheading">AI-powered predictions based on historical sales and market activity.</p>
         <nav aria-label="Primary">
           <ul className="nav-list">
-            <li>MOVERS</li>
-            <li>LOSERS</li>
-            <li>TRENDING</li>
-            <li>SEARCH</li>
-            <li>WATCHLIST</li>
+            <li>
+              <a href="#movers">MOVERS</a>
+            </li>
+            <li>
+              <a href="#losers">LOSERS</a>
+            </li>
+            <li>
+              <a href="#trending">TRENDING</a>
+            </li>
+            <li>
+              <a href="#search">SEARCH</a>
+            </li>
+            <li>
+              <a href="#watchlist">WATCHLIST</a>
+            </li>
           </ul>
         </nav>
       </header>
