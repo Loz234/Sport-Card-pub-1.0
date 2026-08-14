@@ -12,6 +12,7 @@ def _to_response(page_result: RankingPage) -> RankedCardsPageResponse:
     return RankedCardsPageResponse(
         items=[
             {
+                "card_id": item.card_id,
                 "card_name": item.card_name,
                 "player": item.player,
                 "sport": item.sport,

@@ -1,4 +1,5 @@
 export interface RankedCard {
+  card_id: number
   card_name: string
   player: string
   sport: string
@@ -19,6 +20,7 @@ export interface RankedCardsPageResponse {
 }
 
 export interface TrendingCard {
+  card_id: number
   card_name: string
   player: string
   sport: string
@@ -31,4 +33,45 @@ export interface TrendingCard {
 
 export interface TrendingCardsResponse {
   items: TrendingCard[]
+}
+
+export interface HistoricalPricePoint {
+  timestamp: string
+  price: number
+}
+
+export interface CardDetail {
+  card_id: number
+  card_name: string
+  player: string
+  sport: string
+  set_name: string
+  parallel: string | null
+  grade: string | null
+  current_estimated_market_value: number | null
+  historical_market_data: {
+    price_points: HistoricalPricePoint[]
+    available_ranges: string[]
+  }
+  ai_prediction: {
+    direction: string | null
+    predicted_30_day_movement: number | null
+    predicted_90_day_movement: number | null
+    confidence: number | null
+    market_momentum: number | null
+    sales_volume: number
+    sales_velocity: number
+    trending_score: number | null
+    disclaimer: string
+  }
+  explanation: {
+    generated_from_validated_backend_data: boolean
+    reasons: string[]
+  }
+}
+
+export interface AddToWatchlistResponse {
+  card_id: number
+  watcher_id: string
+  added: boolean
 }

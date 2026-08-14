@@ -21,6 +21,7 @@ class RankingQuery:
 
 @dataclass(frozen=True)
 class RankedCard:
+    card_id: int
     card_name: str
     player: str
     sport: str
@@ -84,6 +85,7 @@ class MoversLosersRankingEngine:
 
             ranked.append(
                 RankedCard(
+                    card_id=int(row.card_id),
                     card_name=self._card_name(
                         year=row.year,
                         manufacturer=row.manufacturer,
@@ -161,6 +163,7 @@ class MoversLosersRankingEngine:
 
         statement: Select[tuple] = (
             select(
+                Card.id.label("card_id"),
                 Card.year,
                 Card.manufacturer,
                 Card.set_name,

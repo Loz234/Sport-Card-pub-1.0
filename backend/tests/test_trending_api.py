@@ -206,6 +206,7 @@ def test_trending_endpoint_returns_signals_without_inventing_missing_supply_data
     by_name = {item["card_name"]: item for item in payload["items"]}
 
     rising = by_name["2024 Panini Prizm #1"]
+    assert rising["card_id"] == 1
     assert rising["player"] == "Caitlin Clark"
     assert rising["sport"] == "basketball"
     assert rising["trending_score"] >= 45
@@ -215,6 +216,7 @@ def test_trending_endpoint_returns_signals_without_inventing_missing_supply_data
     assert rising["activity_signal"] > 0
 
     falling = by_name["2021 Panini Select #9"]
+    assert falling["card_id"] == 2
     assert falling["player"] == "Joe Burrow"
     assert falling["sport"] == "football"
     assert falling["trending_score"] >= 45

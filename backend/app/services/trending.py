@@ -20,6 +20,7 @@ def _to_utc(value: datetime) -> datetime:
 
 @dataclass(frozen=True)
 class TrendingCard:
+    card_id: int
     card_name: str
     player: str
     sport: str
@@ -143,6 +144,7 @@ class TrendingCardsEngine:
         sport_name = card.sport.name if card.sport is not None else ""
 
         return TrendingCard(
+            card_id=card.id,
             card_name=build_card_name(
                 year=card.year,
                 manufacturer=card.manufacturer,

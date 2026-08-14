@@ -1,6 +1,15 @@
 from app.schemas.health import HealthCheckResponse, ServiceStatus
 from app.schemas.ranking import RankedCardResponse, RankedCardsPageResponse
 from app.schemas.trending import TrendingCardResponse, TrendingCardsResponse
+from app.schemas.card_detail import (
+    AIPredictionResponse,
+    AddToWatchlistRequest,
+    AddToWatchlistResponse,
+    CardDetailResponse,
+    HistoricalMarketDataResponse,
+    HistoricalPricePointResponse,
+    PredictionExplanationResponse,
+)
 from app.schemas.database import (
     CardCreate,
     CardRead,
@@ -31,6 +40,13 @@ __all__ = [
     "RankedCardsPageResponse",
     "TrendingCardResponse",
     "TrendingCardsResponse",
+    "HistoricalPricePointResponse",
+    "HistoricalMarketDataResponse",
+    "AIPredictionResponse",
+    "PredictionExplanationResponse",
+    "CardDetailResponse",
+    "AddToWatchlistRequest",
+    "AddToWatchlistResponse",
     "SportCreate",
     "SportRead",
     "PlayerCreate",

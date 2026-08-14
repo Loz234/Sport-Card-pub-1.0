@@ -273,6 +273,7 @@ def test_movers_endpoint_returns_ranked_cards_with_required_fields(client: TestC
     assert payload["total"] == 1
     assert payload["data_quality_threshold"] == 0.5
     item = payload["items"][0]
+    assert item["card_id"] == 1
     assert item["card_name"] == "2018 Panini Prizm #23"
     assert item["player"] == "LeBron James"
     assert item["sport"] == "basketball"
@@ -293,6 +294,7 @@ def test_losers_endpoint_supports_sport_filter_and_min_sales_volume(client: Test
     payload = response.json()
     assert payload["total"] == 1
     assert len(payload["items"]) == 1
+    assert payload["items"][0]["card_id"] == 2
     assert payload["items"][0]["card_name"] == "2019 Panini Select #15"
     assert payload["items"][0]["predicted_direction"] == "DOWN"
 

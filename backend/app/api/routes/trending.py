@@ -13,6 +13,7 @@ def get_trending(db: Session = Depends(get_db)) -> TrendingCardsResponse:
     engine = TrendingCardsEngine(db)
     items = [
         TrendingCardResponse(
+            card_id=item.card_id,
             card_name=item.card_name,
             player=item.player,
             sport=item.sport,

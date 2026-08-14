@@ -56,7 +56,11 @@ function directionClass(direction: string): string {
   return 'neutral'
 }
 
-export function DashboardPage() {
+interface DashboardPageProps {
+  onSelectCard: (cardId: number) => void
+}
+
+export function DashboardPage({ onSelectCard }: DashboardPageProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [movers, setMovers] = useState<SectionState<RankedCard>>(initialSectionState)
   const [losers, setLosers] = useState<SectionState<RankedCard>>(initialSectionState)
@@ -146,13 +150,19 @@ export function DashboardPage() {
       <Section id="movers" title="TOP MOVERS" loading={movers.loading} error={movers.error} isEmpty={filteredMovers.length === 0}>
         <div className="card-grid">
           {filteredMovers.map((item) => (
-            <article className="data-card" key={`mover-${item.card_name}-${item.player}`}>
+            <article className="data-card" key={`mover-${item.card_id}`}>
               <h3>{item.card_name}</h3>
               <p>Player: {item.player}</p>
               <p>Current price: {formatCurrency(item.current_estimated_price)}</p>
               <p>Predicted 30-day movement: {formatPercent(item.predicted_30_day_movement)}</p>
               <p>Confidence: {formatPercent(item.confidence * 100)}</p>
               <p className={directionClass(item.predicted_direction)}>{directionLabel(item.predicted_direction)}</p>
+              <button type="button" className="card-action" onClick={() => onSelectCard(item.card_id)}>
+                View details
+              </button>
+              <button type="button" className="card-action" onClick={() => onSelectCard(item.card_id)}>
+                View details
+              </button>
             </article>
           ))}
         </div>
@@ -161,13 +171,16 @@ export function DashboardPage() {
       <Section id="losers" title="TOP LOSERS" loading={losers.loading} error={losers.error} isEmpty={filteredLosers.length === 0}>
         <div className="card-grid">
           {filteredLosers.map((item) => (
-            <article className="data-card" key={`loser-${item.card_name}-${item.player}`}>
+            <article className="data-card" key={`loser-${item.card_id}`}>
               <h3>{item.card_name}</h3>
               <p>Player: {item.player}</p>
               <p>Current price: {formatCurrency(item.current_estimated_price)}</p>
               <p>Predicted 30-day movement: {formatPercent(item.predicted_30_day_movement)}</p>
               <p>Confidence: {formatPercent(item.confidence * 100)}</p>
               <p className={directionClass(item.predicted_direction)}>{directionLabel(item.predicted_direction)}</p>
+              <button type="button" className="card-action" onClick={() => onSelectCard(item.card_id)}>
+                View details
+              </button>
             </article>
           ))}
         </div>
@@ -182,11 +195,14 @@ export function DashboardPage() {
       >
         <div className="card-grid">
           {filteredTrending.map((item) => (
-            <article className="data-card" key={`trending-${item.card_name}-${item.player}`}>
+            <article className="data-card" key={`trending-${item.card_id}`}>
               <h3>{item.card_name}</h3>
               <p>Trending score: {item.trending_score.toFixed(2)}</p>
               <p>Price momentum: {formatPercent(item.price_momentum)}</p>
               <p>Sales momentum: {formatPercent(item.sales_momentum)}</p>
+              <button type="button" className="card-action" onClick={() => onSelectCard(item.card_id)}>
+                View details
+              </button>
             </article>
           ))}
         </div>

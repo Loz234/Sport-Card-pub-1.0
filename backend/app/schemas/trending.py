@@ -2,6 +2,7 @@ from pydantic import BaseModel
 
 
 class TrendingCardResponse(BaseModel):
+    card_id: int
     card_name: str
     player: str
     sport: str
