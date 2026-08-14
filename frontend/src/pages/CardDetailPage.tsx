@@ -28,6 +28,7 @@ const rangeDays: Record<RangeOption, number> = {
   '90d': 90,
   '1y': 365,
 }
+const WATCHER_STORAGE_KEY = 'cardsignal.watcher_id'
 
 function formatCurrency(value: number | null): string {
   if (value === null) {
@@ -104,7 +105,7 @@ export function CardDetailPage({ cardId, onBack }: CardDetailPageProps) {
     setWatchlistPending(true)
     setWatchlistMessage(null)
     try {
-      const response = await addToWatchlist(cardId)
+      const response = await addToWatchlist(cardId, getWatcherId())
       setWatchlistMessage(response.added ? 'Added to watchlist.' : 'Already in watchlist.')
     } catch {
       setWatchlistMessage('Unable to add this card to the watchlist.')
@@ -201,8 +202,8 @@ export function CardDetailPage({ cardId, onBack }: CardDetailPageProps) {
             <h2>Explanation</h2>
             <p className="supporting-copy">Generated from validated backend data only. No unsupported statistics are shown.</p>
             <ul className="explanation-list">
-              {detail.item.explanation.reasons.map((reason) => (
-                <li key={reason}>{reason}</li>
+            {detail.item.explanation.reasons.map((reason, index) => (
+              <li key={`${index}`}>{reason}</li>
               ))}
             </ul>
           </section>
@@ -210,6 +211,24 @@ export function CardDetailPage({ cardId, onBack }: CardDetailPageProps) {
       )}
     </section>
   )
+}
+
+function getWatcherId(): string {
+  if (typeof window === 'undefined') {
+    return 'demo-user'
+  }
+
+  const existing = window.localStorage.getItem(WATCHER_STORAGE_KEY)
+  if (existing) {
+    return existing
+  }
+
+  const generated =
+    typeof window.crypto?.randomUUID === 'function'
+      ? window.crypto.randomUUID()
+      : `watcher-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+  window.localStorage.setItem(WATCHER_STORAGE_KEY, generated)
+  return generated
 }
 
 function filterPoints(points: HistoricalPricePoint[], range: RangeOption): HistoricalPricePoint[] {

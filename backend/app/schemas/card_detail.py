@@ -43,7 +43,7 @@ class CardDetailResponse(BaseModel):
 
 
 class AddToWatchlistRequest(BaseModel):
-    watcher_id: str = "demo-user"
+    watcher_id: str
 
 
 class AddToWatchlistResponse(BaseModel):

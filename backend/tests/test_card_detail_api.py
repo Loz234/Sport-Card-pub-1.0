@@ -205,6 +205,12 @@ def test_add_to_watchlist_endpoint_is_idempotent(client: TestClient) -> None:
     assert second_response.json() == {"card_id": 1, "watcher_id": "demo-user", "added": False}
 
 
+def test_add_to_watchlist_requires_watcher_id(client: TestClient) -> None:
+    response = client.post("/api/v1/cards/1/watchlist", json={})
+
+    assert response.status_code == 422
+
+
 
 def test_card_detail_endpoint_returns_404_for_missing_card(client: TestClient) -> None:
     response = client.get("/api/v1/cards/999")

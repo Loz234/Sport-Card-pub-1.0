@@ -15,7 +15,7 @@ from app.schemas.card_detail import (
     HistoricalPricePointResponse,
     PredictionExplanationResponse,
 )
-from app.services.market_analysis import MarketAnalysisEngine
+from app.services.market_analysis import MarketAnalysisEngine, MarketMetrics
 from app.services.trending import TrendingCardsEngine
 from app.services.utils import build_card_name
 
@@ -67,7 +67,7 @@ class CardDetailService:
             grade=self._grade(card),
             current_estimated_market_value=self._current_estimated_market_value(card=card, prediction_summary=prediction_summary),
             historical_market_data=HistoricalMarketDataResponse(
-                price_points=self._historical_price_points(card),
+                price_points=self._historical_price_points(card=card, as_of=as_of),
                 available_ranges=["7d", "30d", "90d", "1y"],
             ),
             ai_prediction=AIPredictionResponse(
@@ -78,7 +78,7 @@ class CardDetailService:
                 market_momentum=round(metrics.price_change * 100, 2) if metrics.price_change is not None else None,
                 sales_volume=metrics.sales_volume,
                 sales_velocity=round(metrics.sales_velocity, 2),
-                trending_score=self._trending_score(card),
+                trending_score=self._trending_score(card=card, as_of=as_of),
                 disclaimer=_DISCLAIMER,
             ),
             explanation=PredictionExplanationResponse(
@@ -177,8 +177,8 @@ class CardDetailService:
             return round(float(recent_sales[0].sale_price), 2)
         return None
 
-    def _historical_price_points(self, card: Card) -> list[HistoricalPricePointResponse]:
-        cutoff = datetime.now(UTC) - timedelta(days=365)
+    def _historical_price_points(self, *, card: Card, as_of: datetime) -> list[HistoricalPricePointResponse]:
+        cutoff = self._to_utc(as_of) - timedelta(days=365)
         filtered_sales = [
             sale for sale in sorted(card.historical_sales, key=lambda item: item.sale_date)
             if self._to_utc(sale.sale_date) >= cutoff and float(sale.sale_price) > 0
@@ -191,13 +191,10 @@ class CardDetailService:
             for sale in filtered_sales
         ]
 
-    def _trending_score(self, card: Card) -> float | None:
-        trending_card = self.trending_engine._build_trending_card(card=card, as_of=datetime.now(UTC))
-        if trending_card is None:
-            return None
-        return trending_card.trending_score
+    def _trending_score(self, *, card: Card, as_of: datetime) -> float | None:
+        return self.trending_engine.get_trending_score_for_card(card=card, as_of=as_of)
 
-    def _build_explanation(self, *, prediction_summary: _PredictionSummary, metrics) -> list[str]:
+    def _build_explanation(self, *, prediction_summary: _PredictionSummary, metrics: MarketMetrics) -> list[str]:
         reasons: list[str] = []
 
         if prediction_summary.movement_30d is not None and prediction_summary.direction is not None:

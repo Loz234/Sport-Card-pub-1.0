@@ -55,6 +55,12 @@ class TrendingCardsEngine:
         ranked.sort(key=lambda item: item.trending_score, reverse=True)
         return ranked
 
+    def get_trending_score_for_card(self, *, card: Card, as_of: datetime) -> float | None:
+        trending_card = self._build_trending_card(card=card, as_of=_to_utc(as_of))
+        if trending_card is None:
+            return None
+        return trending_card.trending_score
+
     def _candidate_cards(self, *, as_of: datetime) -> list[Card]:
         sales_since = as_of - timedelta(days=self.HISTORICAL_WINDOW_DAYS)
         snapshots_since = as_of - timedelta(days=self.RECENT_WINDOW_DAYS + self.BASELINE_WINDOW_DAYS)

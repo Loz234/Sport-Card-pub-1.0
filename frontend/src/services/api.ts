@@ -23,11 +23,11 @@ export async function fetchCardDetail(cardId: number): Promise<CardDetail> {
   return request<CardDetail>(`/api/v1/cards/${cardId}`)
 }
 
-export async function addToWatchlist(cardId: number): Promise<AddToWatchlistResponse> {
+export async function addToWatchlist(cardId: number, watcherId: string): Promise<AddToWatchlistResponse> {
   return request<AddToWatchlistResponse>(`/api/v1/cards/${cardId}/watchlist`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ watcher_id: 'demo-user' }),
+    body: JSON.stringify({ watcher_id: watcherId }),
   })
 }
 
