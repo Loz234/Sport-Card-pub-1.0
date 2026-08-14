@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, fields, replace
 import re
 from typing import Any, Protocol
 
@@ -190,6 +190,7 @@ class CardParser:
     CARD_NUMBER_PATTERN = re.compile(r"(?:#|no\.?\s*)([a-z0-9-]{1,10})\b", re.IGNORECASE)
     SERIAL_PATTERN = re.compile(r"\b(\d{1,4}\s*/\s*\d{1,4})\b")
     GRADE_PATTERN = re.compile(r"\b(PSA|BGS|SGC|CGC)\s*([0-9]{1,2}(?:\.[0-9])?)\b", re.IGNORECASE)
+    COMPACT_GRADE_PATTERN = re.compile(r"(psa|bgs|sgc|cgc)(10|95|85|[1-9])\b")
 
     def __init__(
         self,
@@ -219,7 +220,7 @@ class CardParser:
                 sport = self.normalizer.PLAYER_SPORT_LOOKUP[player]
                 score += 0.06
 
-        year = self._extract_year(normalized)
+        year = self._extract_year(normalized, tokens)
         if year:
             score += 0.12
 
@@ -289,7 +290,7 @@ class CardParser:
         )
         score -= 0.06 * missing_core
         confidence = max(0.0, min(1.0, round(score, 4)))
-        return ParsedCard(**{**parsed.__dict__, "confidence": confidence})
+        return replace(parsed, confidence=confidence)
 
     def _apply_optional_llm(self, parsed: ParsedCard, score: float) -> tuple[ParsedCard, float]:
         if not self.llm_provider:
@@ -307,7 +308,7 @@ class CardParser:
         if not llm_result:
             return parsed, score
 
-        payload = parsed.__dict__.copy()
+        payload = self._as_payload(parsed)
         filled_core = 0
         for field_name in (
             "sport",
@@ -333,7 +334,11 @@ class CardParser:
         if not payload["is_memorabilia"] and llm_result.get("is_memorabilia") is True:
             payload["is_memorabilia"] = True
 
-        if payload["sport"] is None and payload["player"] in self.normalizer.PLAYER_SPORT_LOOKUP:
+        if (
+            payload["sport"] is None
+            and payload["player"] is not None
+            and payload["player"] in self.normalizer.PLAYER_SPORT_LOOKUP
+        ):
             payload["sport"] = self.normalizer.PLAYER_SPORT_LOOKUP[payload["player"]]
             score += 0.06
 
@@ -348,9 +353,12 @@ class CardParser:
         if not validation.canonical_updates:
             return parsed, score + validation.confidence_boost
 
-        payload = parsed.__dict__.copy()
+        payload = self._as_payload(parsed)
         payload.update(validation.canonical_updates)
         return ParsedCard(**payload), score + validation.confidence_boost
+
+    def _as_payload(self, parsed: ParsedCard) -> dict[str, Any]:
+        return {field_def.name: getattr(parsed, field_def.name) for field_def in fields(parsed)}
 
     def _extract_sport(self, tokens: list[str]) -> str | None:
         for token in tokens:
@@ -364,12 +372,16 @@ class CardParser:
                 return canonical
         return None
 
-    def _extract_year(self, normalized_title: str) -> int | None:
+    def _extract_year(self, normalized_title: str, tokens: list[str]) -> int | None:
         match = self.YEAR_PATTERN.search(normalized_title)
         if match:
             return int(match.group(1))
 
-        for token in normalized_title.split():
+        grading_tokens = set(self.normalizer.GRADING_COMPANY_ALIASES.keys())
+        for index, token in enumerate(tokens):
+            previous = tokens[index - 1] if index > 0 else ""
+            if previous in grading_tokens or "/" in token or previous.endswith("/"):
+                continue
             if self.TWO_DIGIT_YEAR_PATTERN.fullmatch(token):
                 as_int = int(token)
                 if 0 <= as_int <= 30:
@@ -378,11 +390,10 @@ class CardParser:
 
     def _extract_set_name(self, tokens: list[str], normalized_title: str) -> str | None:
         for alias, canonical in self.normalizer.SET_ALIASES.items():
-            if alias in normalized_title:
-                return canonical
-        for token in tokens:
-            canonical = self.normalizer.canonical_from_alias(token, self.normalizer.SET_ALIASES)
-            if canonical:
+            if " " in alias:
+                if re.search(rf"\b{re.escape(alias)}\b", normalized_title):
+                    return canonical
+            elif alias in tokens:
                 return canonical
         return None
 
@@ -423,10 +434,14 @@ class CardParser:
             company = self.normalizer.GRADING_COMPANY_ALIASES[match.group(1).lower()]
             return company, match.group(2)
 
-        for alias, canonical in self.normalizer.GRADING_COMPANY_ALIASES.items():
-            compact = f"{alias}10"
-            if compact in normalized_title.replace(" ", ""):
-                return canonical, "10"
+        compact_title = normalized_title.replace(" ", "")
+        compact_match = self.COMPACT_GRADE_PATTERN.search(compact_title)
+        if compact_match:
+            company = self.normalizer.GRADING_COMPANY_ALIASES[compact_match.group(1)]
+            raw_grade = compact_match.group(2)
+            if len(raw_grade) == 2 and raw_grade.endswith("5"):
+                return company, f"{raw_grade[0]}.5"
+            return company, raw_grade
         return None, None
 
 
@@ -482,7 +497,9 @@ class CardMatcher:
             return 0.0
 
         aligned = score / total
-        confidence = aligned * min(left.confidence, right.confidence)
+        avg_parse_confidence = (left.confidence + right.confidence) / 2
+        coverage = total
+        confidence = (aligned * coverage * 0.8) + (avg_parse_confidence * 0.2)
         return round(max(0.0, min(1.0, confidence)), 4)
 
 
