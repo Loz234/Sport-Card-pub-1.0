@@ -1,4 +1,4 @@
-from unittest.mock import Mock, patch
+from unittest.mock import MagicMock, Mock, patch
 
 from fastapi import status
 from fastapi.testclient import TestClient
@@ -28,7 +28,7 @@ def test_health_endpoint_reports_subsystem_boundaries() -> None:
 
 def test_root_health_endpoint_reports_healthy_status() -> None:
     fake_connection = Mock()
-    fake_engine = Mock()
+    fake_engine = MagicMock()
     fake_engine.connect.return_value.__enter__.return_value = fake_connection
     fake_engine.connect.return_value.__exit__.return_value = None
 
